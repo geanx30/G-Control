@@ -1,0 +1,12 @@
+Backup criado antes de uma alteracao grande.
+
+Arquivo do backup:
+C:\Users\gean.martins\Documents\Projetos\Backups_Controle_Licencas\Controle_de_Licencas_2026-05-25_18-12-06.zip
+
+Estado salvo:
+- Sistema Node.js + Express + PostgreSQL.
+- Login com perfis Admin e Somente visualizacao.
+- Cadastro de softwares/chaves, usuarios e vinculos.
+- Importacao CSV para licencas, usuarios e vinculos.
+- Edicao em janela modal, sem deslocar a pagina.
+- Confirmacao antes de alterar registros existentes.

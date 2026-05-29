@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>G-Control</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body class="locked">
+    <div class="login-screen" id="loginScreen">
+      <form class="login-box" id="loginForm">
+        <img class="brand-logo login-logo" src="assets/g-control-logo.png" alt="G-Control">
+        <h1>G-Control</h1>
+        <p>Entre para acessar o sistema</p>
+        <div class="field">
+          <label for="loginUsername">Usuario *</label>
+          <input id="loginUsername" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="loginPassword">Senha *</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" required>
+        </div>
+        <p class="warning" id="loginError" hidden></p>
+        <button class="primary" type="submit">Entrar</button>
+      </form>
+    </div>
+
+    <aside class="sidebar">
+      <div class="brand">
+        <img class="brand-logo" src="assets/g-control-logo.png" alt="G-Control">
+        <div>
+          <strong>G-Control</strong>
+          <span>Gestao de licencas e financeiro</span>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Principal">
+        <button class="nav-item active" data-view="dashboard" type="button" title="Painel">
+          <span class="icon" aria-hidden="true">▦</span>
+          <span>Painel</span>
+        </button>
+        <button class="nav-item" data-view="licenses" type="button" title="Licencas">
+          <span class="icon" aria-hidden="true">⌘</span>
+          <span>Licencas</span>
+        </button>
+        <button class="nav-item" data-view="users" type="button" title="Usuarios">
+          <span class="icon" aria-hidden="true">◉</span>
+          <span>Usuarios</span>
+        </button>
+        <button class="nav-item" data-view="assignments" type="button" title="Vinculos">
+          <span class="icon" aria-hidden="true">⇄</span>
+          <span>Vinculos</span>
+        </button>
+        <button class="nav-item" data-view="financial" type="button" title="Financeiro">
+          <span class="icon" aria-hidden="true">$</span>
+          <span>Financeiro</span>
+        </button>
+        <button class="nav-item" data-view="reports" type="button" title="Relatorios">
+          <span class="icon" aria-hidden="true">▤</span>
+          <span>Relatorios</span>
+        </button>
+        <button class="nav-item admin-only" data-view="access" type="button" title="Acessos">
+          <span class="icon" aria-hidden="true">A</span>
+          <span>Acessos</span>
+        </button>
+        <button class="nav-item admin-only" data-view="settings" type="button" title="Configuracoes">
+          <span class="icon" aria-hidden="true">⚙</span>
+          <span>Configuracoes</span>
+        </button>
+      </nav>
+      <!-- Export/import controls removed from sidebar. -->
+      <div class="sidebar-actions" hidden style="display:none">
+        <button class="ghost icon-button" id="exportData" type="button" title="Exportar dados">⇩</button>
+        <label class="ghost icon-button" for="importFile" title="Importar dados">⇧</label>
+        <input id="importFile" type="file" accept="application/json" hidden>
+      </div>
+      <div class="account sidebar-account">
+        <span id="currentUserLabel">-</span>
+        <button class="secondary compact" id="accountButton" type="button">Minha conta</button>
+        <button class="secondary compact" id="logoutButton" type="button">Sair</button>
+      </div>
+    </aside>
+
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">G-Control</p>
+          <h1 id="pageTitle">Painel</h1>
+        </div>
+        <div class="topbar-actions">
+          <div class="search">
+            <span aria-hidden="true">⌕</span>
+            <input id="globalSearch" type="search" placeholder="Buscar">
+          </div>
+        </div>
+      </header>
+
+      <section id="dashboard" class="view active-view" aria-labelledby="pageTitle">
+        <div class="metrics">
+          <article class="metric">
+            <span>Softwares</span>
+            <strong id="metricSoftware">0</strong>
+          </article>
+          <article class="metric">
+            <span>Chaves cadastradas</span>
+            <strong id="metricLicenses">0</strong>
+          </article>
+          <article class="metric">
+            <span>Em uso</span>
+            <strong id="metricInUse">0</strong>
+          </article>
+          <article class="metric">
+            <span>Disponiveis</span>
+            <strong id="metricAvailable">0</strong>
+          </article>
+          <article class="metric danger">
+            <span>Vencidas</span>
+            <strong id="metricExpired">0</strong>
+          </article>
+        </div>
+
+        <div class="split">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Proximos vencimentos</h2>
+              <span class="pill" id="renewalCount">0 itens</span>
+            </div>
+            <div class="list" id="renewalList"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Uso por software</h2>
+              <span class="pill">Capacidade</span>
+            </div>
+            <div class="list" id="usageList"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="licenses" class="view">
+        <div class="workgrid">
+          <form class="editor" id="licenseForm">
+            <input type="hidden" id="licenseId">
+            <h2>Chave de licenca</h2>
+            <div class="field">
+              <label for="software">Software *</label>
+              <input id="software" list="softwareOptions" required placeholder="AutoCAD, Revit, Office">
+              <datalist id="softwareOptions"></datalist>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="vendor">Fabricante</label>
+                <input id="vendor" placeholder="Autodesk, Microsoft">
+              </div>
+              <div class="field">
+                <label for="licenseType">Tipo *</label>
+                <select id="licenseType">
+                  <option>Serial</option>
+                  <option>Usuarios nomeados</option>
+                  <option>Usuarios simultaneos</option>
+                  <option>Assinatura</option>
+                  <option>Perpetua</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="licenseKey">Chave, serial ou contrato</label>
+              <input id="licenseKey" placeholder="XXXXX-XXXXX-XXXXX">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="seats">Quantidade</label>
+                <input id="seats" type="number" min="1" value="1">
+              </div>
+              <div class="field">
+                <label for="expiresAt">Expira em</label>
+                <input id="expiresAt" type="date">
+              </div>
+            </div>
+            <div class="field">
+              <label for="supplier">Fornecedor</label>
+              <input id="supplier" placeholder="Revenda ou portal">
+            </div>
+            <div class="field">
+              <label for="licenseNotes">Observacoes</label>
+              <textarea id="licenseNotes" rows="3"></textarea>
+            </div>
+            <div class="form-actions">
+              <button class="secondary" id="clearLicense" type="button">Limpar</button>
+              <button class="primary" type="submit">Salvar chave</button>
+            </div>
+          </form>
+          <section class="table-panel">
+            <div class="panel-head">
+              <h2>Chaves cadastradas</h2>
+              <div class="panel-actions manager-only">
+                <button class="primary compact" id="newLicense" type="button">Nova chave</button>
+                <button class="secondary compact" id="downloadLicenseTemplate" type="button">Modelo XLSX</button>
+                <label class="secondary compact" for="licenseCsvFile">Importar XLSX/CSV</label>
+                <input id="licenseCsvFile" type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th><button class="sort-header" type="button" data-sort-table="licenses" data-sort-key="software">Software e chave <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="licenses" data-sort-key="type">Tipo <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="licenses" data-sort-key="used">Uso <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="licenses" data-sort-key="expiresAt">Expira <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="licenses" data-sort-key="status">Status <span class="sort-arrow"></span></button></th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="licenseRows"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="licensePagination"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="users" class="view">
+        <div class="workgrid">
+          <form class="editor" id="userForm">
+            <input type="hidden" id="userId">
+            <h2>Usuario</h2>
+            <div class="field">
+              <label for="userName">Nome *</label>
+              <input id="userName" required placeholder="Nome completo">
+            </div>
+            <div class="field">
+              <label for="email">E-mail ou login *</label>
+              <input id="email" required placeholder="usuario@empresa.com">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="department">Departamento</label>
+                <input id="department" placeholder="TI, Projetos, Financeiro">
+              </div>
+              <div class="field">
+                <label for="device">Equipamento</label>
+                <input id="device" placeholder="Notebook, desktop">
+              </div>
+            </div>
+            <div class="field">
+              <label for="userStatus">Status</label>
+              <select id="userStatus">
+                <option>Ativo</option>
+                <option>Inativo</option>
+                <option>Terceiro</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button class="secondary" id="clearUser" type="button">Limpar</button>
+              <button class="primary" type="submit">Salvar usuario</button>
+            </div>
+          </form>
+          <section class="table-panel">
+            <div class="panel-head">
+              <h2>Usuarios cadastrados</h2>
+              <div class="panel-actions manager-only">
+                <button class="primary compact" id="newUser" type="button">Novo usuario</button>
+                <button class="secondary compact" id="downloadUserTemplate" type="button">Modelo XLSX</button>
+                <label class="secondary compact" for="userCsvFile">Importar XLSX/CSV</label>
+                <input id="userCsvFile" type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+                <span class="pill" id="userCount">0 usuarios</span>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th><button class="sort-header" type="button" data-sort-table="users" data-sort-key="name">Nome <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="users" data-sort-key="email">E-mail/login <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="users" data-sort-key="department">Departamento <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="users" data-sort-key="licenses">Licencas <span class="sort-arrow"></span></button></th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="userRows"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="userPagination"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="assignments" class="view">
+        <div class="workgrid">
+          <form class="editor" id="assignmentForm">
+            <input type="hidden" id="assignmentId">
+            <h2>Vinculo</h2>
+            <div class="field">
+              <label for="assignmentLicense">Licenca *</label>
+              <select id="assignmentLicense" required></select>
+            </div>
+            <div class="field">
+              <label for="assignmentUser">Usuario *</label>
+              <select id="assignmentUser" required></select>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="startDate">Inicio</label>
+                <input id="startDate" type="date">
+              </div>
+              <div class="field">
+                <label for="returnDate">Devolucao</label>
+                <input id="returnDate" type="date">
+              </div>
+            </div>
+            <div class="field">
+              <label for="assignmentStatus">Status</label>
+              <select id="assignmentStatus">
+                <option>Em uso</option>
+                <option>Reservada</option>
+                <option>Devolvida</option>
+                <option>Bloqueada</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="assignmentNotes">Observacoes</label>
+              <textarea id="assignmentNotes" rows="3"></textarea>
+            </div>
+            <div class="form-actions">
+              <button class="secondary" id="clearAssignment" type="button">Limpar</button>
+              <button class="primary" type="submit">Salvar vinculo</button>
+            </div>
+            <p class="warning" id="capacityWarning" hidden></p>
+          </form>
+          <section class="table-panel">
+            <div class="panel-head">
+              <h2>Vinculos ativos</h2>
+              <div class="panel-actions manager-only">
+                <button class="primary compact" id="newAssignment" type="button">Novo vinculo</button>
+                <button class="secondary compact" id="downloadAssignmentTemplate" type="button">Modelo XLSX</button>
+                <label class="secondary compact" for="assignmentCsvFile">Importar XLSX/CSV</label>
+                <input id="assignmentCsvFile" type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+                <span class="pill" id="assignmentCount">0 vinculos</span>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th><button class="sort-header" type="button" data-sort-table="assignments" data-sort-key="user">Usuario <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="assignments" data-sort-key="software">Software <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="assignments" data-sort-key="key">Chave <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="assignments" data-sort-key="startDate">Inicio <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="assignments" data-sort-key="status">Status <span class="sort-arrow"></span></button></th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="assignmentRows"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="assignmentPagination"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="financial" class="view">
+        <div class="metrics">
+          <article class="metric">
+            <span>Boletos</span>
+            <strong id="metricBills">0</strong>
+          </article>
+          <article class="metric">
+            <span>Valor total</span>
+            <strong id="metricBillAmount">R$ 0</strong>
+          </article>
+          <article class="metric">
+            <span>Aguardando</span>
+            <strong id="metricBillPending">0</strong>
+          </article>
+          <article class="metric danger">
+            <span>Vencidos</span>
+            <strong id="metricBillExpired">0</strong>
+          </article>
+          <article class="metric">
+            <span>Sem AP</span>
+            <strong id="metricBillNoAp">0</strong>
+          </article>
+        </div>
+
+        <div class="workgrid">
+          <form class="editor" id="financialForm">
+            <input type="hidden" id="financialId">
+            <h2>Boleto / software</h2>
+            <div class="field-row">
+              <div class="field">
+                <label for="financialFornecedor">Software *</label>
+                <input id="financialFornecedor" required>
+              </div>
+              <div class="field">
+                <label for="financialCategoria">Categoria</label>
+                <input id="financialCategoria" placeholder="Sistema, servico, assinatura">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="financialNf">NF</label>
+                <input id="financialNf">
+              </div>
+              <div class="field">
+                <label for="financialCodFornecedor">Codigo fornecedor</label>
+                <input id="financialCodFornecedor">
+                <input id="financialNomeFornecedor" type="hidden">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="financialBoleto">Valor boleto</label>
+                <input id="financialBoleto" type="number" min="0" step="0.01">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="financialDataEmissao">Emissao</label>
+                <input id="financialDataEmissao" type="date">
+              </div>
+              <div class="field">
+                <label for="financialDataVencimento">Vencimento</label>
+                <input id="financialDataVencimento" type="date">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="financialStatus">Status pagamento</label>
+                <select id="financialStatus">
+                  <option>Aguardando Pagamento</option>
+                  <option>Pago</option>
+                  <option>Em aberto</option>
+                  <option>Cancelado</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="financialAp">AP do MEGA</label>
+                <input id="financialAp" placeholder="AP 52530">
+              </div>
+            </div>
+            <div class="field">
+              <label for="financialFilial">Filial</label>
+              <input id="financialFilial" placeholder="Preenchida pelo MEGA">
+            </div>
+            <div class="field">
+              <label for="financialLicense">Licenca vinculada</label>
+              <select id="financialLicense"></select>
+            </div>
+            <div class="form-actions">
+              <button class="secondary" id="clearFinancial" type="button">Limpar</button>
+              <button class="secondary" id="lookupMegaFinancial" type="button">Buscar MEGA</button>
+              <button class="primary" type="submit">Salvar boleto</button>
+            </div>
+          </form>
+          <section class="table-panel">
+            <div class="panel-head">
+              <h2>Boletos e APs</h2>
+              <div class="panel-actions manager-only">
+                <button class="primary compact" id="newFinancial" type="button">Novo boleto</button>
+                <button class="secondary compact" id="syncMegaFinancial" type="button">Atualizar MEGA</button>
+                <button class="secondary compact admin-only" id="sendFinancialAlerts" type="button">Enviar alertas</button>
+                <button class="secondary compact" id="downloadFinancialTemplate" type="button">Modelo XLSX</button>
+                <label class="secondary compact" for="financialCsvFile">Importar XLSX/CSV</label>
+                <input id="financialCsvFile" type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+                <span class="pill" id="financialCount">0 itens</span>
+              </div>
+            </div>
+            <div class="financial-controls">
+              <div class="segmented" aria-label="Modo de visualizacao financeiro">
+                <button class="active" id="financialAllMode" type="button">Todos</button>
+                <button id="financialFilteredMode" type="button">Filtrar</button>
+              </div>
+              <select id="financialFilterType" hidden>
+                <option value="software">Software</option>
+                <option value="filial">Filial</option>
+                <option value="status">Status</option>
+                <option value="vencimento">Vencimento</option>
+              </select>
+              <select id="financialValueFilter" hidden></select>
+              <div class="date-range-filter" id="financialDateRangeFilter" hidden>
+                <input id="financialDateFromFilter" type="date" aria-label="Vencimento de">
+                <span>ate</span>
+                <input id="financialDateToFilter" type="date" aria-label="Vencimento ate">
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th><button class="sort-header" type="button" data-sort-table="financial" data-sort-key="software">Software <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="financial" data-sort-key="supplier">Fornecedor <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="financial" data-sort-key="nf">NF <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="financial" data-sort-key="amount">Boleto <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="financial" data-sort-key="dueDate">Vencimento <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="financial" data-sort-key="status">Status <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="financial" data-sort-key="ap">AP <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="financial" data-sort-key="filial">Filial <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="financial" data-sort-key="license">Licenca <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="financial" data-sort-key="alert">Alerta <span class="sort-arrow"></span></button></th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="financialRows"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="financialPagination"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="reports" class="view">
+        <section class="panel report-filters">
+          <h2>Filtros do relatorio</h2>
+          <div class="filter-grid">
+            <div class="field">
+              <label for="reportType">Extrair</label>
+              <select id="reportType">
+                <option value="licenses">Licencas</option>
+                <option value="users">Usuarios</option>
+                <option value="assignments">Vinculos</option>
+                <option value="financial">Financeiro</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="reportSoftware">Software</label>
+              <select id="reportSoftware"></select>
+            </div>
+            <div class="field">
+              <label for="reportUser">Usuario</label>
+              <select id="reportUser"></select>
+            </div>
+            <div class="field">
+              <label for="reportStatus">Status</label>
+              <select id="reportStatus"></select>
+            </div>
+            <div class="field">
+              <label for="reportFilial">Filial</label>
+              <select id="reportFilial"></select>
+            </div>
+            <div class="field">
+              <label for="reportDueFrom">Vencimento de</label>
+              <input id="reportDueFrom" type="date">
+            </div>
+            <div class="field">
+              <label for="reportDueTo">Vencimento ate</label>
+              <input id="reportDueTo" type="date">
+            </div>
+          </div>
+        </section>
+        <div class="report-toolbar">
+          <button class="secondary" id="copyReport" type="button">Copiar resumo</button>
+          <button class="secondary" id="downloadCsv" type="button">Exportar CSV</button>
+        </div>
+        <section class="panel report">
+          <h2 id="reportTitle">Resumo operacional</h2>
+          <div id="reportBody"></div>
+        </section>
+      </section>
+
+      <section id="access" class="view admin-only">
+        <div class="workgrid">
+          <form class="editor" id="accessForm">
+            <input type="hidden" id="accessId">
+            <h2>Acesso ao sistema</h2>
+            <div class="field">
+              <label for="accessUsername">Usuario de login *</label>
+              <input id="accessUsername" required autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="accessDisplayName">Nome</label>
+              <input id="accessDisplayName" placeholder="Nome do colaborador">
+            </div>
+            <div class="field">
+              <label for="accessEmail">E-mail</label>
+              <input id="accessEmail" type="email" autocomplete="email" placeholder="usuario@empresa.com">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="accessPassword">Senha</label>
+                <input id="accessPassword" type="password" autocomplete="new-password">
+              </div>
+              <div class="field">
+                <label for="accessConfirmPassword">Confirmar senha</label>
+                <input id="accessConfirmPassword" type="password" autocomplete="new-password">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="accessRole">Perfil</label>
+                <select id="accessRole">
+                  <option value="viewer">Somente visualizacao</option>
+                  <option value="member">Membro</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </div>
+            <label class="checkline">
+              <input id="accessActive" type="checkbox" checked>
+              <span>Ativo</span>
+            </label>
+            <p class="meta">Ao editar um acesso, deixe a senha em branco para manter a senha atual.</p>
+            <div class="form-actions">
+              <button class="secondary" id="clearAccess" type="button">Limpar</button>
+              <button class="primary" type="submit">Salvar acesso</button>
+            </div>
+          </form>
+          <section class="table-panel">
+            <div class="panel-head">
+              <h2>Usuarios de acesso</h2>
+              <div class="panel-actions admin-only">
+                <button class="primary compact" id="newAccess" type="button">Novo acesso</button>
+                <span class="pill" id="accessCount">0 acessos</span>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th><button class="sort-header" type="button" data-sort-table="access" data-sort-key="username">Usuario <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="access" data-sort-key="displayName">Nome <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="access" data-sort-key="email">E-mail <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="access" data-sort-key="role">Perfil <span class="sort-arrow"></span></button></th>
+                    <th><button class="sort-header" type="button" data-sort-table="access" data-sort-key="active">Status <span class="sort-arrow"></span></button></th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="accessRows"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="accessPagination"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="settings" class="view admin-only">
+        <div class="settings-tabs segmented" aria-label="Configuracoes">
+          <button class="active" id="settingsEmailTab" type="button">SMTP</button>
+          <button id="settingsAuditTab" type="button">Auditoria</button>
+        </div>
+        <div class="settings-pane active-settings-pane" id="settingsEmailPane">
+          <form class="editor wide-editor" id="emailSettingsForm">
+            <h2>Disparo de e-mails</h2>
+            <label class="checkline">
+              <input id="alertEmailEnabled" type="checkbox">
+              <span>Ativar envio automatico diario</span>
+            </label>
+            <div class="field-row">
+              <div class="field">
+                <label for="emailProvider">Metodo de envio</label>
+                <select id="emailProvider">
+                  <option value="graph">Microsoft Graph OAuth 2.0</option>
+                  <option value="smtp">SMTP tradicional</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="alertEmailTime">Horario do envio</label>
+                <input id="alertEmailTime" type="time" value="08:00">
+              </div>
+            </div>
+            <div class="field-row graph-email-field">
+              <div class="field">
+                <label for="graphTenantId">Tenant ID</label>
+                <input id="graphTenantId" placeholder="ID do tenant Microsoft Entra">
+              </div>
+              <div class="field">
+                <label for="graphClientId">Client ID</label>
+                <input id="graphClientId" placeholder="Application / Client ID">
+              </div>
+            </div>
+            <div class="field graph-email-field">
+              <label for="graphClientSecret">Client Secret</label>
+              <input id="graphClientSecret" type="password" autocomplete="new-password">
+            </div>
+            <div class="field-row smtp-email-field">
+              <div class="field">
+                <label for="smtpSecure">Seguranca SMTP</label>
+                <select id="smtpSecure">
+                  <option value="false">STARTTLS / porta 587</option>
+                  <option value="true">SSL / porta 465</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row smtp-email-field">
+              <div class="field">
+                <label for="smtpHost">Servidor SMTP</label>
+                <input id="smtpHost" placeholder="smtp.empresa.com">
+              </div>
+              <div class="field">
+                <label for="smtpPort">Porta</label>
+                <input id="smtpPort" type="number" min="1" placeholder="587">
+              </div>
+            </div>
+            <div class="field-row smtp-email-field">
+              <div class="field">
+                <label for="smtpUser">Usuario SMTP</label>
+                <input id="smtpUser" placeholder="alertas@empresa.com">
+              </div>
+              <div class="field">
+                <label for="smtpPassword">Senha SMTP</label>
+                <input id="smtpPassword" type="password" autocomplete="new-password">
+              </div>
+            </div>
+            <div class="field">
+              <label for="alertEmailFrom">Remetente</label>
+            <input id="alertEmailFrom" placeholder="G-Control <alertas@empresa.com>">
+            </div>
+            <div class="field">
+              <label for="alertEmailTo">Destinatarios</label>
+              <input id="alertEmailTo" placeholder="ti@empresa.com,financeiro@empresa.com">
+            </div>
+            <div class="form-actions">
+              <button class="secondary" id="testEmailSettings" type="button">Enviar teste</button>
+              <button class="primary" type="submit">Salvar configuracoes</button>
+            </div>
+            <p class="meta" id="emailSettingsStatus"></p>
+          </form>
+        </div>
+        <section class="settings-pane table-panel" id="settingsAuditPane">
+          <div class="panel-head">
+            <h2>Auditoria</h2>
+            <div class="panel-actions">
+              <button class="secondary compact" id="refreshAuditLogs" type="button">Atualizar</button>
+              <button class="danger-button compact" id="clearAuditLogs" type="button">Limpar LOG</button>
+              <span class="pill" id="auditCount">0 registros</span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Usuario</th>
+                  <th>Acao</th>
+                  <th>Modulo</th>
+                  <th>Detalhes</th>
+                </tr>
+              </thead>
+              <tbody id="auditRows"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="auditPagination"></div>
+        </section>
+      </section>
+      <footer class="app-footer">
+        Copyright &copy; <span id="copyrightYear"></span> G-Control. Todos os direitos reservados.
+      </footer>
+    </main>
+
+    <dialog id="confirmDialog">
+      <form method="dialog">
+        <h2 id="confirmTitle">Confirmar</h2>
+        <p id="confirmText"></p>
+        <div class="form-actions">
+          <button class="secondary" value="cancel">Cancelar</button>
+          <button class="danger-button" id="confirmOk" value="ok">Excluir</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="editDialog" class="edit-dialog">
+      <div class="dialog-head">
+        <h2 id="editDialogTitle">Editar</h2>
+        <button class="small-action" id="closeEditDialog" type="button" title="Fechar">X</button>
+      </div>
+      <div id="editDialogBody"></div>
+    </dialog>
+
+    <form class="editor account-editor" id="accountForm">
+      <h2>Minha conta</h2>
+      <div class="field">
+        <label for="accountUsername">Usuario *</label>
+        <input id="accountUsername" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="accountDisplayName">Nome</label>
+        <input id="accountDisplayName" placeholder="Seu nome">
+      </div>
+      <div class="field">
+        <label for="accountCurrentPassword">Senha atual</label>
+        <input id="accountCurrentPassword" type="password" autocomplete="current-password">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="accountNewPassword">Nova senha</label>
+          <input id="accountNewPassword" type="password" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="accountConfirmPassword">Confirmar nova senha</label>
+          <input id="accountConfirmPassword" type="password" autocomplete="new-password">
+        </div>
+      </div>
+      <p class="meta">Para alterar a senha, informe a senha atual e confirme a nova senha.</p>
+      <div class="form-actions">
+        <button class="secondary" id="clearAccountPassword" type="button">Limpar senha</button>
+        <button class="primary" type="submit">Salvar minha conta</button>
+      </div>
+    </form>
+
+    <script src="app.js"></script>
+  </body>
+</html>
