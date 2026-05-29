@@ -29,7 +29,7 @@ Esse comando tambem cria o login master:
 
 ```text
 Usuario: admin
-Senha: Projetos@2026*
+Senha: Senha
 Perfil: Admin
 ```
 
